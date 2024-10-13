@@ -1,61 +1,58 @@
 package main
 
 import (
-	"container/heap"
 	"fmt"
-	"math/rand"
 )
 
-// 定义一个整型最小堆
-type IntHeap []int
-
-func (h IntHeap) Len() int           { return len(h) }
-// 这是表示从小到大排序，如果<则表示从大到小排序。
-func (h IntHeap) Less(i, j int) bool { return h[i] > h[j] }
-func (h IntHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-
-func (h *IntHeap) Push(x interface{}) {
-	// Push 方法接受 interface{}，所以我们需要先类型断言
-	*h = append(*h, x.(int))
+// 泛型定义类型约束，确保类型支持比较操作
+type Integer interface {
+	int | int8 | int16 | int32 | int64 |
+		uint | uint8 | uint16 | uint32 | uint64
 }
 
-func (h *IntHeap) Pop() interface{} {
-	old := *h
-	n := len(old)
-	x := old[n-1]
-	*h = old[0 : n-1]
-	return x
+// 泛型堆排序函数
+func heapSort[T Integer](arr []T) {
+	n := len(arr)
+	buildMaxHeap[T](arr, n)
+	for i := n - 1; i >= 0; i-- {
+		arr[0], arr[i] = arr[i], arr[0]
+		maxHeapify[T](arr, 0, i)
+	}
 }
 
-// 创建一个随机整数切片并进行堆排序
-func heapSort(arr []int) {
-	h := &IntHeap{}
-	heap.Init(h)
-
-	// 将切片元素添加到堆中
-	for _, v := range arr {
-		// 添加元素到数组末尾，然后heap会在Push内部调整堆顺序，就是v[i]往v[i/2]调整(孩子往父亲方向)
-		heap.Push(h, v)
+// 初始化大顶堆
+func buildMaxHeap[T Integer](arr []T, n int) {
+	for i := n/2 - 1; i >= 0; i-- {
+		maxHeapify[T](arr, i, n)
 	}
+}
 
-	// 从堆中移除元素并添加到结果切片中
-	sorted := make([]int, h.Len())
-	for h.Len() > 0 {
-		sorted[h.Len()-1] = heap.Pop(h).(int)
+// 最大堆调整
+func maxHeapify[T Integer](arr []T, i, n int) {
+	largest := i
+	left := 2*i + 1
+	right := 2*i + 2
+
+	if left < n && arr[left] > arr[largest] {
+		largest = left
 	}
-
-	// 输出排序结果
-	fmt.Println(sorted)
+	if right < n && arr[right] > arr[largest] {
+		largest = right
+	}
+	if largest != i {
+		arr[i], arr[largest] = arr[largest], arr[i]
+		maxHeapify[T](arr, largest, n)
+	}
 }
 
 func main() {
-	// 创建一个包含随机整数的切片
-	rand.Seed(42)
-	arr := make([]int, 10)
-	for i := range arr {
-		arr[i] = rand.Int() % 100 // 生成随机整数
-	}
+	// 测试整数类型
+	arrInt := []int{3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5}
+	heapSort[int](arrInt)
+	fmt.Println("Sorted array of integers:", arrInt)
 
-	// 对切片进行堆排序
-	heapSort(arr)
+	// 测试另一种整数类型
+	arrInt64 := []int64{20, 35, -15, 7, 55, 1, -22}
+	heapSort[int64](arrInt64)
+	fmt.Println("Sorted array of int64:", arrInt64)
 }
